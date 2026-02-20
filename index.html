@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="text-align:center;margin-top:80px;font-family:sans-serif;">
+
+    <h2>Location Based AR</h2>
+    <div id="status">Checking location...</div>
+
+    <div id="arButton" style="display:none;margin-top:30px;">
+        <a rel="ar" href="AR_Move2.usdz">
+            <img src="model.png" width="300" style="border-radius:20px;">
+        </a>
+    </div>
+
+    <script>
+
+        const targetLat = 12.6576695;
+        const targetLng = 99.8939400;
+        // ระยะทางที่อนุญาตให้เปิด AR (หน่วยเป็นกิโลเมตร)
+        const allowedDistance = 5; // 5000 เมตร
+        // ฟังก์ชันคำนวณระยะทางระหว่างสองจุดบนโลก Haversine formula
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) *
+                Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+        // ขอพิกัดจากมือถือ
+        navigator.geolocation.getCurrentPosition(function (position) {
+
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const distance = getDistance(userLat, userLng, targetLat, targetLng);
+            // เปรียบเทียบระยะทางกับระยะที่อนุญาตและแสดงข้อความและปุ่ม AR ตามผลลัพธ์
+            if (distance <= allowedDistance) {
+                document.getElementById("status").innerHTML = "✅ You are in location!";
+                document.getElementById("arButton").style.display = "block";
+            } else {
+                document.getElementById("status").innerHTML =
+                    "❌ Too far (" + (distance * 1000).toFixed(0) + " m)";
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>
