@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Location Based AR</title>
 
     <!-- Font Awesome -->
@@ -40,7 +39,8 @@
             color: white;
             font-size: 18px;
             border-radius: 50px;
-            text-decoration: none;
+            border: none;
+            cursor: pointer;
             transition: 0.3s;
         }
 
@@ -62,20 +62,24 @@
     <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
 
     <div id="arButton">
-        <a rel="ar" href="AR_Move2.usdz" class="ar-btn">
+        <button onclick="openAR()" class="ar-btn">
             <i class="fa-solid fa-cube"></i>
             รับชม AR
-        </a>
+        </button>
     </div>
 
     <script>
-        const userLat = 12.6582744;  
-        const userLng = 99.8639523;   
-        const radius = 5; // ระยะเมตรที่อนุญาตให้เปิด AR
+        // 📍 จุดเป้าหมาย
+        const targetLat = 12.659111;
+        const targetLng = 99.864299;
+
+        // 📏 รัศมี (เมตร)
+        const radius = 200; // 10 กิโลเมตร
 
         const distanceText = document.getElementById("distance");
         const arButton = document.getElementById("arButton");
 
+        // คำนวณระยะทาง (เมตร)
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
@@ -98,8 +102,9 @@
 
             const distance = getDistance(userLat, userLng, targetLat, targetLng);
 
-            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ "
-                + distance.toFixed(2) + " เมตร";
+            distanceText.innerHTML =
+                "คุณอยู่ห่างจากจุด AR ประมาณ " +
+                distance.toFixed(2) + " เมตร";
 
             if (distance <= radius) {
                 arButton.style.display = "block";
@@ -109,7 +114,12 @@
         }
 
         function error() {
-            distanceText.innerHTML = "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
+            distanceText.innerHTML =
+                "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
+        }
+
+        function openAR() {
+            window.location.href = "AR_Move2.usdz";
         }
 
         if (navigator.geolocation) {
@@ -122,10 +132,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
