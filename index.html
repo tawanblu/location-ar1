@@ -1,65 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Location Based AR</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #distance {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        #arButton {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .ar-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #007bff;
+            color: white;
+            font-size: 18px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .ar-btn:hover {
+            background: #0056b3;
+        }
+
+        .ar-btn i {
+            margin-right: 8px;
+        }
+    </style>
 </head>
 
-<body style="text-align:center;margin-top:80px;font-family:sans-serif;">
+<body>
 
-    <h2>Location Based AR</h2>
-    <div id="status">Checking location...</div>
+    <h1>Location Based AR</h1>
+    <p>เดินเข้าใกล้จุดที่กำหนดเพื่อเปิด AR</p>
 
-    <div id="arButton" style="display:none;margin-top:30px;">
-        <a rel="ar" href="AR_Move2.usdz">
-            <img src="model.png" width="300" style="border-radius:20px;">
+    <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
+
+    <div id="arButton">
+        <a rel="ar" href="AR_Move2.usdz" class="ar-btn">
+            <i class="fa-solid fa-cube"></i>
+            รับชม AR
         </a>
     </div>
 
     <script>
-
         const targetLat = 12.6576695;
-        const targetLng = 99.8639400;
-        // ระยะทางที่อนุญาตให้เปิด AR (หน่วยเป็นกิโลเมตร)
-        const allowedDistance = 2; // 5000 เมตร
-        // ฟังก์ชันคำนวณระยะทางระหว่างสองจุดบนโลก Haversine formula
+        const targetLng = 99.8949400;
+        const radius = 5000; // ระยะเมตรที่อนุญาตให้เปิด AR
+
+        const distanceText = document.getElementById("distance");
+        const arButton = document.getElementById("arButton");
+
         function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) *
-                Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
             return R * c;
         }
-        // ขอพิกัดจากมือถือ
-        navigator.geolocation.getCurrentPosition(function (position) {
 
+        function checkLocation(position) {
             const userLat = position.coords.latitude;
             const userLng = position.coords.longitude;
+
             const distance = getDistance(userLat, userLng, targetLat, targetLng);
-            // เปรียบเทียบระยะทางกับระยะที่อนุญาตและแสดงข้อความและปุ่ม AR ตามผลลัพธ์
-            if (distance <= allowedDistance) {
-                document.getElementById("status").innerHTML = "✅ You are in location!";
-                document.getElementById("arButton").style.display = "block";
+
+            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ "
+                + distance.toFixed(2) + " เมตร";
+
+            if (distance <= radius) {
+                arButton.style.display = "block";
             } else {
-                document.getElementById("status").innerHTML =
-                    "❌ Too far (" + (distance * 1000).toFixed(0) + " m)";
+                arButton.style.display = "none";
             }
+        }
 
-        });
+        function error() {
+            distanceText.innerHTML = "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
+        }
 
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(checkLocation, error);
+        } else {
+            distanceText.innerHTML = "อุปกรณ์ไม่รองรับ GPS";
+        }
     </script>
 
 </body>
 
-
 </html>
-
-
-
-
-
