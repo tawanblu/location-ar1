@@ -4,10 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Location Based AR</title>
 
-    <!-- model-viewer (สำคัญมาก) -->
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <title>Location Based AR</title>
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -30,61 +28,57 @@
             margin-top: 10px;
         }
 
-        #arContainer {
+        #arButton {
             display: none;
             margin-top: 30px;
         }
 
-        model-viewer {
-            width: 100%;
-            max-width: 350px;
-            height: 350px;
-            margin: auto;
+        .ar-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #007bff;
+            color: white;
+            font-size: 18px;
+            border-radius: 50px;
+            text-decoration: none;
+            transition: 0.3s;
         }
 
-        .hint {
-            margin-top: 10px;
-            color: #666;
+        .ar-btn:hover {
+            background: #0056b3;
+        }
+
+        .ar-btn i {
+            margin-right: 8px;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>📍 Location Based AR</h1>
-    <p>เดินเข้าใกล้จุดเพื่อปลดล็อก AR</p>
+    <h1>Location Based AR</h1>
+    <p>เดินเข้าใกล้จุดที่กำหนดเพื่อเปิด AR</p>
 
     <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
 
-    <!-- AR -->
-    <div id="arContainer">
-
-        <model-viewer src="model/AR_MOVE3.glb" ios-src="model/AR_Move2.usdz" ar ar-modes="scene-viewer quick-look webxr"
-            camera-controls auto-rotate shadow-intensity="1">
-
-            <button slot="ar-button"
-                style="background:#007bff;color:white;border:none;padding:12px 20px;border-radius:50px;font-size:16px;">
-                🚀 เปิด AR
-            </button>
-
-        </model-viewer>
-
-        <div class="hint">กดปุ่ม AR เพื่อดูโมเดลในโลกจริง</div>
+    <div id="arButton">
+        <a rel="ar" href="model/AR_Move2.usdz" class="ar-btn">
+            <i class="fa-solid fa-cube"></i>
+            รับชม AR
+        </a>
     </div>
 
     <script>
 
-        // 📍 พิกัดเป้าหมาย
         const targetLat = 12.659111;
         const targetLng = 99.864299;
 
-        // 🎯 ระยะ (เมตร)
-        const radius = 1000; // ปรับได้ เช่น 50 / 100 / 200
+        // รัศมี (เมตร)
+        const radius = 99999999; //  500 เมตร
 
         const distanceText = document.getElementById("distance");
-        const arContainer = document.getElementById("arContainer");
+        const arButton = document.getElementById("arButton");
 
-        // 📏 คำนวณระยะ (Haversine)
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
@@ -107,31 +101,25 @@
 
             const distance = getDistance(userLat, userLng, targetLat, targetLng);
 
-            distanceText.innerHTML =
-                "📏 คุณอยู่ห่างจากจุด AR ประมาณ " +
-                distance.toFixed(2) + " เมตร";
+            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ "
+                + distance.toFixed(2) + " เมตร";
 
             if (distance <= radius) {
-                arContainer.style.display = "block";
+                arButton.style.display = "block";
             } else {
-                arContainer.style.display = "none";
+                arButton.style.display = "none";
             }
         }
 
         function error() {
-            distanceText.innerHTML =
-                "❌ ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
+            distanceText.innerHTML = "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
         }
 
-        // 📡 เริ่มตรวจ GPS
         if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(checkLocation, error, {
-                enableHighAccuracy: true
-            });
+            navigator.geolocation.watchPosition(checkLocation, error);
         } else {
-            distanceText.innerHTML = "❌ อุปกรณ์ไม่รองรับ GPS";
+            distanceText.innerHTML = "อุปกรณ์ไม่รองรับ GPS";
         }
-
     </script>
 
 </body>
