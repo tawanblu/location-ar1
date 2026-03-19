@@ -62,12 +62,16 @@
     <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
 
     <div id="arButton">
-        <a rel="ar" href="AR_Move2.usdz" class="ar-btn">
-            <i class="fa-solid fa-cube"></i>
-            รับชม AR
-        </a>
-    </div>
+        <model-viewer src="model/AR_MOVE3.glb" ios-src="model/AR_Move2.usdz" ar ar-modes="webxr scene-viewer quick-look"
+            camera-controls>
 
+            <button slot="ar-button" class="ar-btn">
+                <i class="fa-solid fa-cube"></i>
+                รับชม AR (Android/iOS)
+            </button>
+
+        </model-viewer>
+    </div>
     <script>
 
         const targetLat = 12.659111;
@@ -114,7 +118,7 @@
         function error() {
             distanceText.innerHTML = "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
         }
-
+        // Geolocation API ใช้สำหรับตรวจสอบตำแหน่งของผู้ใช้แบบเรียลไทม์ โดย watchPosition จะคอยตรวจสอบการเปลี่ยนแปลงตำแหน่งและเรียกฟังก์ชัน checkLocation ทุกครั้งที่ตำแหน่งเปลี่ยนแปลง
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(checkLocation, error);
         } else {
@@ -125,6 +129,3 @@
 </body>
 
 </html>
-
-
-
