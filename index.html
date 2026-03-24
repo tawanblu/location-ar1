@@ -2,126 +2,119 @@
 <html lang="th">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Location Based AR</title>
-
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
+    <title>AR Geofence - Fixed</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background: #f5f5f5;
             margin: 0;
-            padding: 40px 20px;
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
 
-        h1 {
-            margin-bottom: 10px;
+        #status-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 400px;
         }
 
-        #distance {
-            font-size: 18px;
-            margin-top: 10px;
-        }
-
-        #arButton {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .ar-btn {
-            display: inline-block;
-            padding: 15px 30px;
+        .btn {
             background: #007bff;
             color: white;
-            font-size: 18px;
-            border-radius: 50px;
-            text-decoration: none;
-            transition: 0.3s;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 15px;
+            cursor: pointer;
+            display: none;
+            width: 100%;
+            font-weight: bold;
         }
 
-        .ar-btn:hover {
-            background: #0056b3;
+        model-viewer {
+            display: none;
         }
 
-        .ar-btn i {
-            margin-right: 8px;
-        }
+        /* ซ่อนตัว viewer หลักไว้ ใช้แค่เปิด AR */
     </style>
 </head>
 
 <body>
 
-    <h1>Location Based AR</h1>
-    <p>เดินเข้าใกล้จุดที่กำหนดเพื่อเปิด AR</p>
-
-    <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
-
-    <div id="arButton">
-        <a rel="ar" href="AR_MOVE4.usdc" class="ar-btn">
-            <i class="fa-solid fa-cube"></i>
-            รับชม AR
-        </a>
+    <div id="status-box">
+        <h3>📍 ตรวจสอบตำแหน่ง</h3>
+        <p id="message">กำลังค้นหาตำแหน่ง GPS...</p>
+        <button id="ar-btn" class="btn" onclick="openAR()">✅ วางโมเดล AR</button>
     </div>
 
+    <model-viewer id="my-model" src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+        ios-src="https://modelviewer.dev/shared-assets/models/Astronaut.usdz" ar
+        ar-modes="webxr scene-viewer quick-look" camera-controls>
+    </model-viewer>
+
     <script>
+        const messageEl = document.getElementById('message');
+        const arBtn = document.getElementById('ar-btn');
 
-        const targetLat = 12.659111;
-        const targetLng = 99.864299;
-
-        // รัศมี (เมตร)
-        const radius = 99999999; //  500 เมตร
-
-        const distanceText = document.getElementById("distance");
-        const arButton = document.getElementById("arButton");
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            return R * c;
+        // 1. ฟังก์ชันเช็คขอบเขตประเทศไทย
+        function isInThailand(lat, lng) {
+            return lat >= 5.5 && lat <= 20.5 && lng >= 97.0 && lng <= 105.5;
         }
 
-        function checkLocation(position) {
-            const userLat = position.coords.latitude;
-            const userLng = position.coords.longitude;
+        // 2. ตั้งค่าความแม่นยำสูง
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
 
-            const distance = getDistance(userLat, userLng, targetLat, targetLng);
+        // 3. เริ่มทำงานเมื่อโหลดหน้าเว็บ
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
 
-            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ "
-                + distance.toFixed(2) + " เมตร";
+                    console.log(`Lat: ${userLat}, Lng: ${userLng}`);
 
-            if (distance <= radius) {
-                arButton.style.display = "block";
+                    if (isInThailand(userLat, userLng)) {
+                        messageEl.innerHTML = `✅ พิกัด: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}<br><span style="color:green">คุณอยู่ในพื้นที่ที่กำหนด</span>`;
+                        arBtn.style.display = 'block'; // โชว์ปุ่ม
+                    } else {
+                        messageEl.innerHTML = `📍 พิกัด: ${userLat.toFixed(4)}, ${userLng.toFixed(4)}<br><span style="color:red">❌ ระบบนี้ใช้ได้เฉพาะในไทย</span>`;
+                    }
+                },
+                (error) => {
+                    messageEl.innerHTML = "⚠️ โปรดเปิด GPS และอนุญาตสิทธิ์เข้าถึงตำแหน่ง";
+                    console.error(error);
+                },
+                options
+            );
+        } else {
+            messageEl.innerHTML = "❌ อุปกรณ์ของคุณไม่รองรับ GPS";
+        }
+
+        // 4. ฟังก์ชันเปิด AR
+        function openAR() {
+            const modelViewer = document.getElementById('my-model');
+            if (modelViewer.canActivateAR) {
+                modelViewer.activateAR();
             } else {
-                arButton.style.display = "none";
+                alert("อุปกรณ์นี้ไม่รองรับ AR");
             }
         }
-
-        function error() {
-            distanceText.innerHTML = "ไม่สามารถเข้าถึงตำแหน่งได้ กรุณาอนุญาต GPS";
-        }
-
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(checkLocation, error);
-        } else {
-            distanceText.innerHTML = "อุปกรณ์ไม่รองรับ GPS";
-        }
     </script>
-
 </body>
 
 </html>
