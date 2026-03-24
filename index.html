@@ -4,10 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Location Based AR</title>
-
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
@@ -19,9 +16,7 @@
             padding: 40px 20px;
         }
 
-        h1 {
-            margin-bottom: 10px;
-        }
+        h1 { margin-bottom: 10px; }
 
         #distance {
             font-size: 18px;
@@ -31,6 +26,11 @@
         #arButton {
             display: none;
             margin-top: 30px;
+        }
+
+        /* ซ่อน img ที่ Apple บังคับให้มี */
+        .ar-btn img {
+            display: none;
         }
 
         .ar-btn {
@@ -44,71 +44,74 @@
             transition: 0.3s;
         }
 
-        .ar-btn:hover {
-            background: #0056b3;
-        }
+        .ar-btn:hover { background: #0056b3; }
+        .ar-btn i { margin-right: 8px; }
 
-        .ar-btn i {
-            margin-right: 8px;
+        #notice {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #e74c3c;
+            display: none;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Location Based AR</h1>
+    <h1>📍 Location Based AR</h1>
     <p>เดินเข้าใกล้จุดที่กำหนดเพื่อเปิด AR</p>
 
     <div id="distance">กำลังตรวจสอบตำแหน่ง...</div>
 
     <div id="arButton">
-        <a rel="ar" href="AR_MOVE4.usdz" class="ar-btn">
+
+        <!--
+            KEY FIX: rel="ar" ต้องมี <img> เป็น child element แรกเสมอ
+            Apple กำหนดไว้ใน AR Quick Look spec
+        -->
+        <a id="arLink" rel="ar" href="AR_MOVE4.usdz" class="ar-btn">
+            <img src="AR_MOVE4.usdz" alt="">
             <i class="fa-solid fa-cube"></i>
             รับชม AR
         </a>
+
+        <p id="notice">⚠️ AR รองรับเฉพาะ Safari บน iPhone/iPad เท่านั้น</p>
+
     </div>
 
     <script>
-
         const targetLat = 12.659111;
         const targetLng = 99.864299;
-
-        // รัศมี (เมตร)
-        const radius = 99999999; //  500 เมตร
+        const radius = 99999999;
 
         const distanceText = document.getElementById("distance");
         const arButton = document.getElementById("arButton");
+        const notice = document.getElementById("notice");
+
+        const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+        if (!isIOS || !isSafari) {
+            notice.style.display = "block";
+            document.getElementById("arLink").removeAttribute("rel");
+        }
 
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            return R * c;
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const dphi = (lat2 - lat1) * Math.PI / 180;
+            const dlam = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dphi/2)**2 + Math.cos(phi1)*Math.cos(phi2)*Math.sin(dlam/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
         function checkLocation(position) {
             const userLat = position.coords.latitude;
             const userLng = position.coords.longitude;
-
             const distance = getDistance(userLat, userLng, targetLat, targetLng);
-
-            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ "
-                + distance.toFixed(2) + " เมตร";
-
-            if (distance <= radius) {
-                arButton.style.display = "block";
-            } else {
-                arButton.style.display = "none";
-            }
+            distanceText.innerHTML = "คุณอยู่ห่างจากจุด AR ประมาณ " + distance.toFixed(0) + " เมตร";
+            arButton.style.display = distance <= radius ? "block" : "none";
         }
 
         function error() {
@@ -116,12 +119,11 @@
         }
 
         if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(checkLocation, error);
+            navigator.geolocation.watchPosition(checkLocation, error, { enableHighAccuracy: true });
         } else {
             distanceText.innerHTML = "อุปกรณ์ไม่รองรับ GPS";
         }
     </script>
 
 </body>
-
 </html>
