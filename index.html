@@ -31,7 +31,6 @@
         }
 
         body {
-            /* บังคับใช้ฟอนต์สารบัญทั้งหน้าเว็บ */
             font-family: 'Sarabun', sans-serif;
             background: var(--deep);
             min-height: 100vh;
@@ -55,6 +54,7 @@
             z-index: 0;
         }
 
+        /* Floating particles */
         .particles {
             position: fixed;
             inset: 0;
@@ -90,6 +90,7 @@
             }
         }
 
+        /* Mandala background */
         .mandala-bg {
             position: fixed;
             top: 50%;
@@ -136,6 +137,7 @@
             }
         }
 
+        /* Top gem accent */
         .gem-top {
             width: 18px;
             height: 18px;
@@ -175,6 +177,7 @@
             width: 100%;
         }
 
+        /* Gold shimmer line top */
         .card-inner::before {
             content: '';
             position: absolute;
@@ -186,6 +189,7 @@
             opacity: 0.7;
         }
 
+        /* Corner ornaments */
         .card-inner::after {
             content: '';
             position: absolute;
@@ -235,6 +239,7 @@
             }
         }
 
+        /* === DEITY SYMBOL === */
         .deity-icon {
             color: whitesmoke;
             font-size: 52px;
@@ -257,6 +262,7 @@
             }
         }
 
+        /* === TITLE === */
         .title-sanskrit {
             font-family: 'Cinzel Decorative', serif;
             font-size: 11px;
@@ -289,6 +295,7 @@
             animation: fade-in 1.5s 0.6s both;
         }
 
+        /* === DIVIDER === */
         .divider {
             display: flex;
             align-items: center;
@@ -315,6 +322,7 @@
             opacity: 0.7;
         }
 
+        /* === DESCRIPTION === */
         .description {
             font-size: 15px;
             font-weight: 300;
@@ -330,6 +338,7 @@
             font-weight: 600;
         }
 
+        /* === AR BUTTON === */
         .btn-wrapper {
             position: relative;
             animation: fade-in 1.5s 1s both;
@@ -422,6 +431,7 @@
             }
         }
 
+        /* === FOOTER TEXT === */
         .footer-note {
             margin-top: 20px;
             font-size: 11.5px;
@@ -431,6 +441,7 @@
             animation: fade-in 2s 1.2s both;
         }
 
+        /* === BOTTOM GEMS === */
         .gems-row {
             display: flex;
             gap: 10px;
@@ -465,6 +476,11 @@
             justify-content: center;
         }
 
+        #fallback-viewer model-viewer {
+            width: 100%;
+            height: 70vh;
+        }
+
         .close-btn {
             margin-top: 16px;
             background: none;
@@ -479,68 +495,6 @@
 
         model-viewer {
             display: none;
-        }
-
-        /* === LOADING PROGRESS BAR === */
-        .custom-progress-bar {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            inset: 0;
-            background: rgba(26, 10, 0, 0.85);
-            backdrop-filter: blur(4px);
-            z-index: 10;
-            transition: opacity 0.4s ease;
-        }
-
-        .update-bar {
-            width: 60%;
-            max-width: 200px;
-            height: 4px;
-            background: rgba(212, 168, 67, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .update-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: var(--progress, 0%);
-            background: linear-gradient(90deg, var(--gold-light), var(--gold));
-            transition: width 0.25s;
-        }
-
-        .loading-text {
-            margin-top: 15px;
-            color: var(--gold-light);
-            font-family: 'Sarabun', sans-serif;
-            font-size: 14px;
-            letter-spacing: 0.05em;
-            animation: text-pulse 1.5s infinite;
-        }
-
-        @keyframes text-pulse {
-
-            0%,
-            100% {
-                opacity: 0.6;
-            }
-
-            50% {
-                opacity: 1;
-                text-shadow: 0 0 10px rgba(212, 168, 67, 0.5);
-            }
-        }
-
-        .custom-progress-bar.hide {
-            opacity: 0;
-            pointer-events: none;
         }
     </style>
 </head>
@@ -627,18 +581,12 @@
     <div id="fallback-viewer">
         <model-viewer id="fallback-model" src="AR_MOVE4.glb" camera-controls touch-action="pan-y" auto-rotate
             alt="โมเดลพระพิฆเนศ" style="display:block; width:100%; height:70vh;" autoplay>
-
-            <div slot="progress-bar" class="custom-progress-bar">
-                <div class="update-bar"></div>
-                <div class="loading-text">กำลังอัญเชิญองค์พิฆเนศ... <span id="progress-percent">0%</span></div>
-            </div>
-
         </model-viewer>
         <button class="close-btn" onclick="closeFallback()">✕ ปิด</button>
     </div>
 
     <script>
-        // สร้าง Particles สีทองลอยขึ้น
+        // Generate floating gold particles
         const particleContainer = document.getElementById('particles');
         for (let i = 0; i < 22; i++) {
             const p = document.createElement('div');
@@ -655,40 +603,19 @@
             particleContainer.appendChild(p);
         }
 
-        // ฟังก์ชันเปิด AR หรือ Fallback
         function openAR() {
             const modelViewer = document.getElementById('my-model');
             if (modelViewer.canActivateAR) {
                 modelViewer.activateAR();
             } else {
+                // Show inline 3D fallback
                 document.getElementById('fallback-viewer').style.display = 'flex';
             }
         }
 
-        // ฟังก์ชันปิด Fallback
         function closeFallback() {
             document.getElementById('fallback-viewer').style.display = 'none';
         }
-
-        // ระบบจัดการ Loading Bar สำหรับ Fallback Model
-        const modelViewerFallback = document.querySelector('#fallback-model');
-        const progressBar = document.querySelector('.custom-progress-bar');
-        const updateBar = document.querySelector('.update-bar');
-        const progressPercent = document.querySelector('#progress-percent');
-
-        modelViewerFallback.addEventListener('progress', (event) => {
-            const progress = event.detail.totalProgress * 100;
-            updateBar.style.setProperty('--progress', `${progress}%`);
-            progressPercent.textContent = `${Math.round(progress)}%`;
-
-            if (progress === 100) {
-                setTimeout(() => {
-                    progressBar.classList.add('hide');
-                }, 400);
-            } else {
-                progressBar.classList.remove('hide');
-            }
-        });
     </script>
 </body>
 
