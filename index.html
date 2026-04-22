@@ -3,618 +3,149 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ganesha AR — อัญเชิญองค์พิฆเนศ</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Sarabun:wght@300;400;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
-        :root {
-            --gold: #d4a843;
-            --gold-light: #f0c96b;
-            --gold-pale: #fdf0d0;
-            --deep: #1a0a00;
-            --crimson: #7a1a0a;
-            --ember: #c4400a;
-            --ivory: #fdf6e3;
-        }
+        :root { --gold: #d4a843; --gold-light: #f0c96b; --deep: #1a0a00; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; overflow: hidden; background-color: #000; margin: 0; }
 
-        *,
-        *::before,
-        *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        /* UI เมนูหลัก */
+        #main-menu-ui { position: absolute; inset: 0; z-index: 999; background: var(--deep); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #main-menu-ui.hide { opacity: 0; pointer-events: none; }
+        #close-ar-btn { position: fixed; top: 20px; left: 20px; z-index: 1000; background: rgba(26, 10, 0, 0.8); border: 1px solid var(--gold); color: var(--gold-light); padding: 10px 20px; border-radius: 50px; font-family: 'Sarabun', sans-serif; font-weight: 600; display: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
+        
+        #ar-controls { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; display: none; flex-wrap: wrap; justify-content: center; width: 90%; gap: 10px; }
+        .control-btn { background: rgba(26, 10, 0, 0.85); border: 1px solid var(--gold); color: var(--gold-light); padding: 10px 18px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); display: flex; align-items: center; gap: 6px; }
+        .control-btn:active { background: var(--gold); color: var(--deep); transform: scale(0.95); }
+        
+        #ar-hint { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(212, 168, 67, 0.4); color: var(--gold-light); padding: 8px 16px; border-radius: 20px; font-size: 13px; white-space: nowrap; display: none; backdrop-filter: blur(4px); }
 
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background: var(--deep);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
+        /* การตกแต่ง */
+        .bg-gradient { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 64, 10, 0.25) 0%, transparent 70%), linear-gradient(180deg, #0d0400 0%, #1a0800 50%, #0d0200 100%); z-index: 0; }
+        .particles { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+        .particle { position: absolute; border-radius: 50%; background: radial-gradient(circle, var(--gold-light), transparent 70%); animation: float-up linear infinite; opacity: 0; }
+        @keyframes float-up { 0% { transform: translateY(100vh) scale(0.5); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.2; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
+        .card { position: relative; z-index: 10; width: min(90vw, 400px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .card-inner { background: linear-gradient(170deg, #1e0c00 0%, #0f0400 100%); border: 1px solid rgba(212, 168, 67, 0.35); border-radius: 28px; padding: 40px 30px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8); width: 100%; }
+        .title-main { font-family: 'Cinzel Decorative', serif; font-size: 26px; font-weight: 900; color: var(--gold-light); margin: 10px 0; }
+        .btn { width: 100%; padding: 18px; background: linear-gradient(135deg, #c4400a, #7a1a0a); border: 1px solid var(--gold); border-radius: 16px; color: var(--gold-light); font-weight: 600; cursor: pointer; }
 
-        /* === BACKGROUND EFFECTS === */
-        .bg-gradient {
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 64, 10, 0.25) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 40% at 20% 100%, rgba(122, 26, 10, 0.3) 0%, transparent 60%),
-                radial-gradient(ellipse 50% 50% at 80% 80%, rgba(212, 168, 67, 0.1) 0%, transparent 60%),
-                linear-gradient(180deg, #0d0400 0%, #1a0800 50%, #0d0200 100%);
-            z-index: 0;
-        }
-
-        /* Floating particles */
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
-        }
-
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--gold-light), transparent 70%);
-            animation: float-up linear infinite;
-            opacity: 0;
-        }
-
-        @keyframes float-up {
-            0% {
-                transform: translateY(100vh) translateX(0) scale(0.5);
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 0.6;
-            }
-
-            90% {
-                opacity: 0.2;
-            }
-
-            100% {
-                transform: translateY(-10vh) translateX(30px) scale(1);
-                opacity: 0;
-            }
-        }
-
-        /* Mandala background */
-        .mandala-bg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(120vw, 120vh);
-            height: min(120vw, 120vh);
-            opacity: 0.04;
-            animation: rotate-slow 60s linear infinite;
-            z-index: 1;
-        }
-
-        @keyframes rotate-slow {
-            from {
-                transform: translate(-50%, -50%) rotate(0deg);
-            }
-
-            to {
-                transform: translate(-50%, -50%) rotate(360deg);
-            }
-        }
-
-        /* === MAIN CARD === */
-        .card {
-            position: relative;
-            z-index: 10;
-            width: min(90vw, 400px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0;
-            animation: card-in 1.2s cubic-bezier(0.23, 1, 0.32, 1) both;
-        }
-
-        @keyframes card-in {
-            from {
-                opacity: 0;
-                transform: translateY(40px) scale(0.95);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        /* Top gem accent */
-        .gem-top {
-            width: 18px;
-            height: 18px;
-            background: linear-gradient(135deg, var(--gold-light), var(--gold));
-            transform: rotate(45deg);
-            box-shadow: 0 0 20px rgba(212, 168, 67, 0.8), 0 0 40px rgba(212, 168, 67, 0.4);
-            animation: gem-pulse 3s ease-in-out infinite;
-            margin-bottom: -1px;
-            position: relative;
-            z-index: 2;
-        }
-
-        @keyframes gem-pulse {
-
-            0%,
-            100% {
-                box-shadow: 0 0 20px rgba(212, 168, 67, 0.8), 0 0 40px rgba(212, 168, 67, 0.4);
-            }
-
-            50% {
-                box-shadow: 0 0 30px rgba(212, 168, 67, 1.0), 0 0 60px rgba(212, 168, 67, 0.6);
-            }
-        }
-
-        .card-inner {
-            background: linear-gradient(170deg, #1e0c00 0%, #160800 40%, #0f0400 100%);
-            border: 1px solid rgba(212, 168, 67, 0.35);
-            border-radius: 28px;
-            padding: 40px 30px 36px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow:
-                0 0 0 1px rgba(212, 168, 67, 0.08),
-                0 40px 80px rgba(0, 0, 0, 0.8),
-                0 0 60px rgba(122, 26, 10, 0.3) inset;
-            width: 100%;
-        }
-
-        /* Gold shimmer line top */
-        .card-inner::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 15%;
-            right: 15%;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--gold-light), var(--gold), var(--gold-light), transparent);
-            opacity: 0.7;
-        }
-
-        /* Corner ornaments */
-        .card-inner::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 28px;
-            background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(212, 168, 67, 0.06) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        /* === HEADER ORNAMENT === */
-        .ornament-line {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            animation: fade-in 1.5s 0.3s both;
-        }
-
-        .ornament-line .line {
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.5));
-        }
-
-        .ornament-line .line:last-child {
-            background: linear-gradient(90deg, rgba(212, 168, 67, 0.5), transparent);
-        }
-
-        .ornament-line .dot {
-            width: 5px;
-            height: 5px;
-            background: var(--gold);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--gold);
-        }
-
-        @keyframes fade-in {
-            from {
-                opacity: 0;
-                transform: scaleX(0.7);
-            }
-
-            to {
-                opacity: 1;
-                transform: scaleX(1);
-            }
-        }
-
-        /* === DEITY SYMBOL === */
-        .deity-icon {
-            color: whitesmoke;
-            font-size: 52px;
-            line-height: 1;
-            margin-bottom: 6px;
-            filter: drop-shadow(0 0 20px rgba(212, 168, 67, 0.6));
-            animation: icon-glow 4s ease-in-out infinite;
-            display: block;
-        }
-
-        @keyframes icon-glow {
-
-            0%,
-            100% {
-                filter: drop-shadow(0 0 15px rgba(212, 168, 67, 0.5));
-            }
-
-            50% {
-                filter: drop-shadow(0 0 30px rgba(212, 168, 67, 0.9)) drop-shadow(0 0 60px rgba(196, 64, 10, 0.4));
-            }
-        }
-
-        /* === TITLE === */
-        .title-sanskrit {
-            font-family: 'Cinzel Decorative', serif;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.3em;
-            color: var(--gold);
-            text-transform: uppercase;
-            opacity: 0.75;
-            margin-bottom: 6px;
-            animation: fade-in 1.5s 0.4s both;
-        }
-
-        .title-main {
-            font-family: 'Cinzel Decorative', serif;
-            font-size: 26px;
-            font-weight: 900;
-            color: var(--gold-light);
-            text-shadow: 0 0 30px rgba(212, 168, 67, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
-            line-height: 1.15;
-            margin-bottom: 4px;
-            animation: fade-in 1.5s 0.5s both;
-        }
-
-        .title-thai {
-            font-size: 14px;
-            font-weight: 300;
-            color: rgba(240, 201, 107, 0.65);
-            letter-spacing: 0.12em;
-            margin-bottom: 0;
-            animation: fade-in 1.5s 0.6s both;
-        }
-
-        /* === DIVIDER === */
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 22px 0;
-            animation: fade-in 1.5s 0.7s both;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.3));
-        }
-
-        .divider::after {
-            background: linear-gradient(90deg, rgba(212, 168, 67, 0.3), transparent);
-        }
-
-        .divider-icon {
-            font-size: 14px;
-            color: var(--gold);
-            opacity: 0.7;
-        }
-
-        /* === DESCRIPTION === */
-        .description {
-            font-size: 15px;
-            font-weight: 300;
-            color: rgba(253, 240, 208, 0.7);
-            line-height: 1.9;
-            margin-bottom: 28px;
-            padding: 0 8px;
-            animation: fade-in 1.5s 0.8s both;
-        }
-
-        .description strong {
-            color: var(--gold-light);
-            font-weight: 600;
-        }
-
-        /* === AR BUTTON === */
-        .btn-wrapper {
-            position: relative;
-            animation: fade-in 1.5s 1s both;
-            width: 100%;
-        }
-
-        .btn-glow {
-            position: absolute;
-            inset: -3px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, var(--gold), var(--ember), var(--crimson), var(--ember), var(--gold));
-            background-size: 300% 300%;
-            animation: gradient-shift 4s ease infinite;
-            filter: blur(8px);
-            opacity: 0.6;
-        }
-
-        @keyframes gradient-shift {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-        .btn {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            padding: 18px 24px;
-            background: linear-gradient(135deg, #c4400a 0%, #7a1a0a 50%, #c4400a 100%);
-            background-size: 200% 200%;
-            border: 1px solid rgba(212, 168, 67, 0.5);
-            border-radius: 16px;
-            color: var(--gold-light);
-            font-family: 'Sarabun', sans-serif;
-            font-size: 17px;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow:
-                0 8px 24px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(212, 168, 67, 0.2) inset,
-                0 2px 0 rgba(212, 168, 67, 0.3) inset;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-            animation: btn-bg 6s ease infinite;
-        }
-
-        @keyframes btn-bg {
-            0% {
-                background-position: 0% 50%;
-            }
-
-            50% {
-                background-position: 100% 50%;
-            }
-
-            100% {
-                background-position: 0% 50%;
-            }
-        }
-
-        .btn:active {
-            transform: scale(0.97);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-
-        .btn-icon {
-            font-size: 20px;
-            animation: spin-slow 8s linear infinite;
-        }
-
-        @keyframes spin-slow {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* === FOOTER TEXT === */
-        .footer-note {
-            margin-top: 20px;
-            font-size: 11.5px;
-            color: rgba(212, 168, 67, 0.35);
-            letter-spacing: 0.1em;
-            text-align: center;
-            animation: fade-in 2s 1.2s both;
-        }
-
-        /* === BOTTOM GEMS === */
-        .gems-row {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 18px;
-            animation: fade-in 2s 1.4s both;
-        }
-
-        .gem-small {
-            width: 6px;
-            height: 6px;
-            background: var(--gold);
-            transform: rotate(45deg);
-            opacity: 0.5;
-        }
-
-        .gem-small:nth-child(2) {
-            opacity: 0.9;
-            background: var(--gold-light);
-            box-shadow: 0 0 8px var(--gold);
-        }
-
-        /* === FALLBACK VIEWER === */
-        #fallback-viewer {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            background: var(--deep);
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #fallback-viewer model-viewer {
-            width: 100%;
-            height: 70vh;
-        }
-
-        .close-btn {
-            margin-top: 16px;
-            background: none;
-            border: 1px solid rgba(212, 168, 67, 0.5);
-            color: var(--gold-light);
-            padding: 10px 28px;
-            border-radius: 50px;
-            font-family: 'Sarabun', sans-serif;
-            font-size: 15px;
-            cursor: pointer;
-        }
-
-        model-viewer {
-            display: none;
-        }
+        /* แก้ไขวิดีโอไม่เต็มจอ */
+        .mindar-ui-overlay { display: none !important; }
+        video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; }
     </style>
 </head>
 
 <body>
 
-    <div class="bg-gradient"></div>
-    <div class="particles" id="particles"></div>
+    <audio id="narration-audio" src="demovoice.mp3" preload="auto"></audio>
 
-    <svg class="mandala-bg" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="200" cy="200" r="195" stroke="#d4a843" stroke-width="0.5" />
-        <circle cx="200" cy="200" r="160" stroke="#d4a843" stroke-width="0.3" />
-        <circle cx="200" cy="200" r="120" stroke="#d4a843" stroke-width="0.5" />
-        <circle cx="200" cy="200" r="80" stroke="#d4a843" stroke-width="0.3" />
-        <circle cx="200" cy="200" r="40" stroke="#d4a843" stroke-width="0.5" />
-        <line x1="200" y1="5" x2="200" y2="395" stroke="#d4a843" stroke-width="0.3" />
-        <line x1="5" y1="200" x2="395" y2="200" stroke="#d4a843" stroke-width="0.3" />
-        <line x1="32" y1="68" x2="368" y2="332" stroke="#d4a843" stroke-width="0.3" />
-        <line x1="68" y1="32" x2="332" y2="368" stroke="#d4a843" stroke-width="0.3" />
-        <line x1="200" y1="5" x2="200" y2="395" stroke="#d4a843" stroke-width="0.3" transform="rotate(30 200 200)" />
-        <line x1="200" y1="5" x2="200" y2="395" stroke="#d4a843" stroke-width="0.3" transform="rotate(60 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(0 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(45 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(90 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(135 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(180 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(225 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(270 200 200)" />
-        <polygon points="200,8 205,20 200,32 195,20" fill="#d4a843" transform="rotate(315 200 200)" />
-    </svg>
-
-    <div class="card">
-        <div class="gem-top"></div>
-        <div class="card-inner">
-
-            <div class="ornament-line">
-                <div class="line"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="line"></div>
+    <div id="main-menu-ui">
+        <div class="bg-gradient"></div>
+        <div class="particles" id="particles"></div>
+        <div class="card">
+            <div class="card-inner">
+                <span style="font-size: 52px; color: white;">ॐ</span>
+                <div class="title-main">Ganesha AR</div>
+                <p style="color: rgba(253, 240, 208, 0.7); margin-bottom: 25px;">อัญเชิญองค์เทพผ่านรูปภาพสถานที่จริง<br>(โปรดอนุญาตการใช้กล้อง)</p>
+                <button class="btn" onclick="startAR()">✦ สแกนภาพสถานที่ (AR)</button>
             </div>
-
-            <span class="deity-icon">ॐ </span>
-            <br>
-
-            <div class="title-main">Ganesha AR</div>
-            <div class="title-thai">อัญเชิญองค์พิฆเนศ</div>
-
-            <div class="divider">
-                <div class="divider-icon">✦</div>
-            </div>
-
-            <p class="description">
-                อัญเชิญ<strong>พระพิฆเนศ</strong>ผู้เป็นเทพแห่งปัญญา<br>
-                ผู้ขจัดอุปสรรค เสริมมงคล<br>
-                ให้มาประทับตรงหน้า<br>
-                ผ่านเทคโนโลยี AR สุดล้ำ<br>
-            </p>
-
-            <div class="btn-wrapper">
-                <div class="btn-glow"></div>
-                <button class="btn" onclick="openAR()">
-                    <span class="btn-icon">✦</span>
-                    รับพรจากองค์พิฆเนศ (AR)
-                </button>
-            </div>
-
-        </div>
-
-        <div class="footer-note">OM GANADHYAKSHAYA NAMAHA</div>
-
-        <div class="gems-row">
-            <div class="gem-small"></div>
-            <div class="gem-small"></div>
-            <div class="gem-small"></div>
         </div>
     </div>
 
-    <model-viewer id="my-model" src="AR_MOVE4.glb" ios-src="Move4.usdz" ar
-        ar-modes="webxr scene-viewer quick-look" camera-controls touch-action="pan-y" alt="โมเดลพระพิฆเนศ" autoplay>
-    </model-viewer>
+    <button id="close-ar-btn" onclick="stopAR()">❮ ปิดกล้อง</button>
+    <div id="ar-hint">💡 ใช้ปุ่มด้านล่างเพื่อหมุนองค์เทพ</div>
 
-    <div id="fallback-viewer">
-        <model-viewer id="fallback-model" src="AR_MOVE4.glb" camera-controls touch-action="pan-y" auto-rotate
-            alt="โมเดลพระพิฆเนศ" style="display:block; width:100%; height:70vh;" autoplay>
-        </model-viewer>
-        <button class="close-btn" onclick="closeFallback()">✕ ปิด</button>
+    <div id="ar-controls">
+        <button class="control-btn" onclick="rotateModel(-30)">↺ ซ้าย</button>
+        <button class="control-btn" onclick="rotateModel(30)">ขวา ↻</button>
+        <button class="control-btn" id="audio-btn" onclick="toggleAudio()" style="background: rgba(122, 26, 10, 0.85);">🔇 เสียง</button>
     </div>
+
+    <a-scene mindar-image="imageTargetSrc: targets001.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;" 
+             color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+             vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+        <a-assets>
+            <a-asset-item id="ganesha-model" src="AR_MOVE4.glb"></a-asset-item>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0" id="markerA">
+            <a-entity id="ganesha-entity" 
+                      gltf-model="#ganesha-model" 
+                      scale="0.05 0.05 0.05" 
+                      position="0 0 0"
+                      rotation="0 0 0" 
+                      animation-mixer>
+            </a-entity>
+        </a-entity>
+    </a-scene>
 
     <script>
-        // Generate floating gold particles
+        // สร้างฝุ่นทองตกแต่ง
         const particleContainer = document.getElementById('particles');
         for (let i = 0; i < 22; i++) {
             const p = document.createElement('div');
             p.className = 'particle';
             const size = Math.random() * 5 + 2;
-            p.style.cssText = `
-                width: ${size}px;
-                height: ${size}px;
-                left: ${Math.random() * 100}%;
-                animation-duration: ${Math.random() * 12 + 8}s;
-                animation-delay: ${Math.random() * -20}s;
-                opacity: 0;
-            `;
+            p.style.cssText = `width: ${size}px; height: ${size}px; left: ${Math.random() * 100}%; animation-duration: ${Math.random() * 10 + 5}s; animation-delay: ${Math.random() * -10}s;`;
             particleContainer.appendChild(p);
         }
 
-        function openAR() {
-            const modelViewer = document.getElementById('my-model');
-            if (modelViewer.canActivateAR) {
-                modelViewer.activateAR();
+        const audio = document.getElementById('narration-audio');
+        const audioBtn = document.getElementById('audio-btn');
+        const marker = document.getElementById('markerA');
+        const sceneEl = document.querySelector('a-scene');
+
+        function toggleAudio() {
+            if (audio.paused) {
+                audio.play();
+                audioBtn.innerHTML = '🔊 เสียง';
             } else {
-                // Show inline 3D fallback
-                document.getElementById('fallback-viewer').style.display = 'flex';
+                audio.pause();
+                audioBtn.innerHTML = '🔇 เสียง';
             }
         }
 
-        function closeFallback() {
-            document.getElementById('fallback-viewer').style.display = 'none';
+        // ระบบสแกนเจอภาพ
+        marker.addEventListener('targetFound', () => {
+            audio.play().then(() => audioBtn.innerHTML = '🔊 เสียง').catch(e => console.log("Unlock audio needed"));
+        });
+
+        marker.addEventListener('targetLost', () => {
+            audio.pause();
+            audioBtn.innerHTML = '🔇 เสียง';
+        });
+
+        function startAR() {
+            document.getElementById('main-menu-ui').classList.add('hide');
+            document.getElementById('close-ar-btn').style.display = 'block';
+            document.getElementById('ar-controls').style.display = 'flex';
+            document.getElementById('ar-hint').style.display = 'block'; 
+            
+            // เริ่มต้นระบบกล้อง MindAR
+            sceneEl.systems['mindar-image-system'].start();
+        }
+
+        function stopAR() {
+            window.location.reload(); // รีโหลดเพื่อล้างหน่วยความจำกล้อง
+        }
+
+        function rotateModel(deg) {
+            const model = document.getElementById('ganesha-entity');
+            const rot = model.getAttribute('rotation');
+            model.setAttribute('rotation', {x: rot.x, y: rot.y + deg, z: rot.z});
         }
     </script>
 </body>
