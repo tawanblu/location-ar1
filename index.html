@@ -86,10 +86,7 @@
         const TARGET_LAT = 13.111352;
         const TARGET_LNG = 99.939209;
         const ALLOWED_RADIUS = 60000;
-        // เติม true || เข้าไปข้างหน้า เพื่อบังคับให้เงื่อนไขเป็นจริงเสมอ
-        if (true || distance <= ALLOWED_RADIUS) {
-            statusText.innerText = "✓ ท่านอยู่ในพื้นที่กำหนดแล้ว (Dev Mode)";
-            // ...
+
 
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -107,8 +104,9 @@
                 const distance = getDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
                 const startBtn = document.getElementById('start-btn');
                 const statusText = document.getElementById('location-status');
-                if (distance <= ALLOWED_RADIUS) {
-                    statusText.innerText = "✓ ท่านอยู่ในพื้นที่กำหนดแล้ว";
+// ใส่สูตรโกง (true ||) ตรงนี้! เพื่อบังคับให้ผ่านเสมอ
+                if (true || distance <= ALLOWED_RADIUS) {
+                    statusText.innerText = "✓ ท่านอยู่ในพื้นที่กำหนดแล้ว (Dev Mode)";
                     statusText.className = "status-success";
                     startBtn.disabled = false;
                     startBtn.innerText = "✦ สแกนป้ายสัญลักษณ์ (AR)";
