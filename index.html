@@ -12,6 +12,61 @@
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
+    <script>
+        AFRAME.registerComponent('blue-screen', {
+            init: function () {
+                var videoEl = document.querySelector(this.el.getAttribute('material').src);
+                if (!videoEl) return;
+                
+                var videoTexture = new THREE.VideoTexture(videoEl);
+                videoTexture.minFilter = THREE.LinearFilter;
+
+                var customMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        textureMap: { value: videoTexture },
+                        keyColor: { value: new THREE.Color('#0000FF') }, // สีเป้าหมายคือน้ำเงิน
+                        similarity: { value: 0.35 }, 
+                        smoothness: { value: 0.1 }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform sampler2D textureMap;
+                        uniform vec3 keyColor;
+                        uniform float similarity;
+                        uniform float smoothness;
+                        varying vec2 vUv;
+
+                        void main() {
+                            vec4 videoColor = texture2D(textureMap, vUv);
+                            float Y1 = 0.299 * keyColor.r + 0.587 * keyColor.g + 0.114 * keyColor.b;
+                            float Cr1 = keyColor.r - Y1;
+                            float Cb1 = keyColor.b - Y1;
+                            float Y2 = 0.299 * videoColor.r + 0.587 * videoColor.g + 0.114 * videoColor.b;
+                            float Cr2 = videoColor.r - Y2;
+                            float Cb2 = videoColor.b - Y2;
+                            float blend = sqrt(pow(Cr1 - Cr2, 2.0) + pow(Cb1 - Cb2, 2.0));
+                            if (blend < similarity) {
+                                float alpha = smoothstep(similarity - smoothness, similarity, blend);
+                                gl_FragColor = vec4(videoColor.rgb, alpha);
+                            } else {
+                                gl_FragColor = videoColor;
+                            }
+                        }
+                    `,
+                    transparent: true
+                });
+
+                this.el.getObject3D('mesh').material = customMaterial;
+            }
+        });
+    </script>
+
     <style>
         :root { --gold: #d4a843; --gold-light: #f0c96b; --deep: #1a0a00; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -65,18 +120,18 @@
              renderer="colorManagement: true;">
 
         <a-assets>
-            <video id="ganesha-video" src="AR_MOVE_SU01.mp4" 
+            <video id="ganesha-video" src="AR_MOVE_SU000.mp4" 
                    preload="auto" loop="true" crossorigin="anonymous" 
                    playsinline webkit-playsinline muted></video>
         </a-assets>
 
         <a-marker preset="hiro" id="markerA">
-            <a-video src="#ganesha-video" 
-             width="1.6" height="0.9" 
-             position="0 0.1 0" 
-             rotation="-90 0 0"
-             material="transparent: true; blending: additive;"> 
-            </a-video>
+            <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" 
+                      material="shader: flat; src: #ganesha-video" 
+                      position="0 0.1 0" 
+                      rotation="-90 0 0"
+                      blue-screen> 
+            </a-entity>
         </a-marker>
         
         <a-entity camera></a-entity>
@@ -87,7 +142,6 @@
         const TARGET_LAT = 13.111352;
         const TARGET_LNG = 99.939209;
         const ALLOWED_RADIUS = 60000;
-
 
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3;
@@ -105,7 +159,7 @@
                 const distance = getDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
                 const startBtn = document.getElementById('start-btn');
                 const statusText = document.getElementById('location-status');
-// ใส่สูตรโกง (true ||) ตรงนี้! เพื่อบังคับให้ผ่านเสมอ
+                // ใส่สูตรโกง (true ||) ตรงนี้! เพื่อบังคับให้ผ่านเสมอ
                 if (true || distance <= ALLOWED_RADIUS) {
                     statusText.innerText = "✓ ท่านอยู่ในพื้นที่กำหนดแล้ว (Dev Mode)";
                     statusText.className = "status-success";
