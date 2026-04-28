@@ -4,49 +4,15 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ganesha AR — อัญเชิญเฉพาะพื้นที่</title>
-
+    <title>Ganesha AR — อัญเชิญองค์พิฆเนศ</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Sarabun:wght@300;400;600&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
 
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script>
-        AFRAME.registerComponent('blue-screen', {
-            init: function () {
-                var videoEl = document.querySelector(this.el.getAttribute('material').src);
-                if (!videoEl) return;
-                var videoTexture = new THREE.VideoTexture(videoEl);
-                videoTexture.minFilter = THREE.LinearFilter;
-                var customMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        textureMap: { value: videoTexture },
-                        keyColor: { value: new THREE.Color('#0000FF') },
-                        similarity: { value: 0.35 },
-                        smoothness: { value: 0.1 }
-                    },
-                    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-                    fragmentShader: `
-                        uniform sampler2D textureMap; uniform vec3 keyColor; uniform float similarity; uniform float smoothness; varying vec2 vUv;
-                        void main() {
-                            vec4 videoColor = texture2D(textureMap, vUv);
-                            float Y1 = 0.299 * keyColor.r + 0.587 * keyColor.g + 0.114 * keyColor.b;
-                            float Cr1 = keyColor.r - Y1; float Cb1 = keyColor.b - Y1;
-                            float Y2 = 0.299 * videoColor.r + 0.587 * videoColor.g + 0.114 * videoColor.b;
-                            float Cr2 = videoColor.r - Y2; float Cb2 = videoColor.b - Y2;
-                            float blend = sqrt(pow(Cr1 - Cr2, 2.0) + pow(Cb1 - Cb2, 2.0));
-                            if (blend < similarity) { float alpha = smoothstep(similarity - smoothness, similarity, blend); gl_FragColor = vec4(videoColor.rgb, alpha); } 
-                            else { gl_FragColor = videoColor; }
-                        }
-                    `,
-                    transparent: true
-                });
-                this.el.getObject3D('mesh').material = customMaterial;
-            }
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/gh/DonMcCurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/dist/gestures.js"></script>
 
     <style>
         :root {
@@ -55,9 +21,7 @@
             --deep: #1a0a00;
         }
 
-        *,
-        *::before,
-        *::after {
+        *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -65,10 +29,11 @@
 
         body {
             font-family: 'Sarabun', sans-serif;
-            overflow: hidden;
+            overflow: hidden; 
             background-color: #000;
         }
 
+        /* === UI เมนูหลัก === */
         #main-menu-ui {
             position: absolute;
             inset: 0;
@@ -96,18 +61,21 @@
             color: var(--gold-light);
             padding: 10px 20px;
             border-radius: 50px;
+            font-family: 'Sarabun', sans-serif;
             font-weight: 600;
-            display: none;
+            display: none; 
             cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
+        /* แผงปุ่มควบคุมด้านล่าง */
         #ar-controls {
             position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            display: none;
+            display: none; 
             flex-wrap: wrap;
             justify-content: center;
             width: 90%;
@@ -120,17 +88,27 @@
             color: var(--gold-light);
             padding: 10px 18px;
             border-radius: 12px;
+            font-family: 'Sarabun', sans-serif;
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
+        .control-btn:active {
+            background: var(--gold);
+            color: var(--deep);
+            transform: scale(0.95);
+        }
+
+        /* 🌟 ข้อความแนะนำการใช้นิ้วสัมผัส 🌟 */
         #ar-hint {
             position: fixed;
-            bottom: 90px;
+            bottom: 90px; /* ลอยอยู่เหนือปุ่มกดหมุน */
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
@@ -139,124 +117,118 @@
             color: var(--gold-light);
             padding: 8px 16px;
             border-radius: 20px;
+            font-family: 'Sarabun', sans-serif;
             font-size: 13px;
+            white-space: nowrap;
             display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
         }
 
-        .bg-gradient {
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 64, 10, 0.25) 0%, transparent 70%), linear-gradient(180deg, #0d0400 0%, #1a0800 50%, #0d0200 100%);
-            z-index: 0;
-        }
-
-        .card {
-            position: relative;
-            z-index: 10;
-            width: min(90vw, 400px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .card-inner {
-            background: linear-gradient(170deg, #1e0c00 0%, #0f0400 100%);
-            border: 1px solid rgba(212, 168, 67, 0.35);
-            border-radius: 28px;
-            padding: 40px 30px;
-            text-align: center;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8);
-            width: 100%;
-        }
-
-        .deity-icon {
-            color: whitesmoke;
-            font-size: 52px;
-            margin-bottom: 6px;
-            display: block;
-        }
-
-        .title-main {
-            font-family: 'Cinzel Decorative', serif;
-            font-size: 26px;
-            font-weight: 900;
-            color: var(--gold-light);
-        }
-
-        .btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #c4400a 0%, #7a1a0a 100%);
-            border: 1px solid rgba(212, 168, 67, 0.5);
-            border-radius: 16px;
-            color: var(--gold-light);
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn:disabled {
-            background: #333;
-            color: #777;
-            cursor: not-allowed;
-        }
-
-        #location-status {
-            font-size: 12px;
-            margin-top: 10px;
-            font-weight: 600;
-        }
-
-        .status-success {
-            color: #4CAF50;
-        }
-
-        .status-fail {
-            color: #FF5252;
-        }
-
-        .arjs-loader {
-            display: none !important;
-        }
+        /* ตกแต่ง UI */
+        .bg-gradient { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 64, 10, 0.25) 0%, transparent 70%), linear-gradient(180deg, #0d0400 0%, #1a0800 50%, #0d0200 100%); z-index: 0; }
+        .particles { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+        .particle { position: absolute; border-radius: 50%; background: radial-gradient(circle, var(--gold-light), transparent 70%); animation: float-up linear infinite; opacity: 0; }
+        @keyframes float-up { 0% { transform: translateY(100vh) translateX(0) scale(0.5); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.2; } 100% { transform: translateY(-10vh) translateX(30px) scale(1); opacity: 0; } }
+        
+        .card { position: relative; z-index: 10; width: min(90vw, 400px); display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .card-inner { background: linear-gradient(170deg, #1e0c00 0%, #160800 40%, #0f0400 100%); border: 1px solid rgba(212, 168, 67, 0.35); border-radius: 28px; padding: 40px 30px 36px; text-align: center; position: relative; box-shadow: 0 0 0 1px rgba(212, 168, 67, 0.08), 0 40px 80px rgba(0, 0, 0, 0.8), 0 0 60px rgba(122, 26, 10, 0.3) inset; width: 100%; }
+        .deity-icon { color: whitesmoke; font-size: 52px; line-height: 1; margin-bottom: 6px; filter: drop-shadow(0 0 20px rgba(212, 168, 67, 0.6)); display: block; }
+        .title-main { font-family: 'Cinzel Decorative', serif; font-size: 26px; font-weight: 900; color: var(--gold-light); line-height: 1.15; margin-bottom: 4px; }
+        .title-thai { font-size: 14px; font-weight: 300; color: rgba(240, 201, 107, 0.65); letter-spacing: 0.12em; margin-bottom: 0; }
+        .divider { display: flex; align-items: center; gap: 8px; margin: 22px 0; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(212, 168, 67, 0.3)); }
+        .divider-icon { font-size: 14px; color: var(--gold); opacity: 0.7; }
+        .description { font-size: 15px; font-weight: 300; color: rgba(253, 240, 208, 0.7); line-height: 1.9; margin-bottom: 28px; padding: 0 8px; }
+        .btn-wrapper { position: relative; width: 100%; }
+        .btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 18px 24px; background: linear-gradient(135deg, #c4400a 0%, #7a1a0a 50%, #c4400a 100%); border: 1px solid rgba(212, 168, 67, 0.5); border-radius: 16px; color: var(--gold-light); font-family: 'Sarabun', sans-serif; font-size: 17px; font-weight: 600; cursor: pointer; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+        .footer-note { margin-top: 20px; font-size: 11.5px; color: rgba(212, 168, 67, 0.35); letter-spacing: 0.1em; text-align: center; }
+        .arjs-loader { display: none !important; } 
     </style>
 </head>
 
 <body>
+
+    <audio id="narration-audio" src="demovoice.mp3" preload="auto"></audio>
+
     <div id="main-menu-ui">
         <div class="bg-gradient"></div>
+        <div class="particles" id="particles"></div>
+
         <div class="card">
             <div class="card-inner">
                 <span class="deity-icon">ॐ</span>
                 <div class="title-main">Ganesha AR</div>
-                <div class="description" id="info-text"
-                    style="color:rgba(253, 240, 208, 0.7); margin: 15px 0; font-size: 14px;">
-                    กรุณาอนุญาตพิกัดเพื่อตรวจสอบตำแหน่ง
+                <div class="title-thai">อัญเชิญองค์พิฆเนศ</div>
+
+                <div class="divider">
+                    <div class="divider-icon">✦</div>
                 </div>
-                <button class="btn" id="start-btn" onclick="startAR()" disabled>✦ รอตรวจสอบตำแหน่ง...</button>
-                <div id="location-status" style="color: var(--gold);">กำลังค้นหาตำแหน่ง...</div>
+
+                <p class="description">
+                    อัญเชิญพระพิฆเนศผ่าน WebAR<br>
+                    สแกนป้ายเพื่อรับพรและรับฟังคำบรรยาย<br>
+                    (โปรดอนุญาตการใช้กล้องและเปิดเสียง)
+                </p>
+
+                <div class="btn-wrapper">
+                    <button class="btn" onclick="startAR()">
+                        ✦ สแกนป้ายสัญลักษณ์ (AR)
+                    </button>
+                </div>
             </div>
+            <div class="footer-note">OM GANADHYAKSHAYA NAMAHA</div>
         </div>
     </div>
 
     <button id="close-ar-btn" onclick="stopAR()">❮ ปิดกล้อง</button>
-    <div id="ar-hint">💡 หันกล้องไปที่ป้ายสัญลักษณ์ Hiro</div>
 
-    <div id="ar-controls">
-        <button class="control-btn" id="audio-btn" onclick="toggleAudio()"
-            style="background: rgba(122, 26, 10, 0.85);">🔇 เปิดเสียง</button>
+    <div id="ar-hint">
+        💡 ใช้นิ้วปัดเพื่อหมุน และถ่างนิ้วเพื่อย่อ-ขยายโมเดล
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false"
-        renderer="colorManagement: true;">
+    <div id="ar-controls">
+        <button class="control-btn" onclick="rotateModel(-30)">
+            <span style="font-size: 18px;">↺</span> ซ้าย
+        </button>
+        <button class="control-btn" onclick="rotateModel(30)">
+            ขวา <span style="font-size: 18px;">↻</span>
+        </button>
+        <button class="control-btn" id="audio-btn" onclick="toggleAudio()" style="background: rgba(122, 26, 10, 0.85);">
+            <span style="font-size: 18px;">🔇</span> เสียง
+        </button>
+    </div>
+
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false;" 
+        vr-mode-ui="enabled: false"
+        gesture-detector>
+        
+        <a-light type="ambient" color="#ffffff" intensity="1.5"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="2.5" position="-1 2 1"></a-light>
+        <a-light type="directional" color="#f0c96b" intensity="1" position="1 1 -1"></a-light>
 
         <a-assets>
-            <video id="ganesha-video" src="AR_MOVE_SU000.mp4" preload="auto" loop="true" crossorigin="anonymous"
-                playsinline webkit-playsinline muted></video>
+            <a-asset-item id="ganesha-model" src="AR_MOVE4.glb"></a-asset-item>
         </a-assets>
 
-        <a-marker preset="hiro" id="markerA">
-            <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" material="shader: flat; src: #ganesha-video"
-                position="0 0.1 0" rotation="-90 0 0" blue-screen>
+        <a-marker 
+            preset="hiro" 
+            raycaster="objects: .clickable" 
+            emitevents="true" 
+            cursor="fuse: false; rayOrigin: mouse;" 
+            id="markerA">
+            
+            <a-entity 
+                id="ganesha-entity"
+                gltf-model="#ganesha-model" 
+                scale="1 1 1" 
+                position="0 0 0" 
+                rotation="-90 0 0" 
+                class="clickable"
+                gesture-handler="minScale: 0.1; maxScale: 5"
+                animation-mixer>
             </a-entity>
         </a-marker>
 
@@ -264,84 +236,72 @@
     </a-scene>
 
     <script>
-        // --- ระบบ Geofencing ---
-        const TARGET_LAT = 13.111352;
-        const TARGET_LNG = 99.939209;
-        const ALLOWED_RADIUS = 60000;
-
-
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const p1 = lat1 * Math.PI / 180;
-            const p2 = lat2 * Math.PI / 180;
-            const dp = (lat2 - lat1) * Math.PI / 180;
-            const dl = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        // สร้าง Particles
+        const particleContainer = document.getElementById('particles');
+        for (let i = 0; i < 22; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 5 + 2;
+            p.style.cssText = `width: ${size}px; height: ${size}px; left: ${Math.random() * 100}%; animation-duration: ${Math.random() * 12 + 8}s; animation-delay: ${Math.random() * -20}s;`;
+            particleContainer.appendChild(p);
         }
 
-        function checkLocation() {
-            if (!navigator.geolocation) return;
-            navigator.geolocation.getCurrentPosition((position) => {
-                const distance = getDistance(position.coords.latitude, position.coords.longitude, TARGET_LAT, TARGET_LNG);
-                const startBtn = document.getElementById('start-btn');
-                const statusText = document.getElementById('location-status');
-                // ใส่สูตรโกง (true ||) ตรงนี้! เพื่อบังคับให้ผ่านเสมอ
-                if (true || distance <= ALLOWED_RADIUS) {
-                    statusText.innerText = "✓ ท่านอยู่ในพื้นที่กำหนดแล้ว (Dev Mode)";
-                    statusText.className = "status-success";
-                    startBtn.disabled = false;
-                    startBtn.innerText = "✦ สแกนป้ายสัญลักษณ์ (AR)";
-                } else {
-                    statusText.innerText = `✗ ห่างจากจุดกำหนด ${Math.round(distance)} เมตร`;
-                    statusText.className = "status-fail";
-                }
-            }, null, { enableHighAccuracy: true });
-        }
-        window.onload = checkLocation;
-
-        // --- ระบบ Video AR Control ---
-        const video = document.getElementById('ganesha-video');
+        // ================= ระบบจัดการเสียง =================
+        const audio = document.getElementById('narration-audio');
         const audioBtn = document.getElementById('audio-btn');
         const marker = document.getElementById('markerA');
 
-        // ฟังก์ชันควบคุมเสียงของวิดีโอ
         function toggleAudio() {
-            if (video.muted) {
-                video.muted = false;
-                audioBtn.innerHTML = '🔊 ปิดเสียง';
+            if (audio.paused) {
+                audio.play();
+                audioBtn.innerHTML = '<span style="font-size: 18px;">🔊</span> เสียง';
             } else {
-                video.muted = true;
-                audioBtn.innerHTML = '🔇 เปิดเสียง';
+                audio.pause();
+                audioBtn.innerHTML = '<span style="font-size: 18px;">🔇</span> เสียง';
             }
         }
 
-        // เมื่อส่องเจอ Marker ให้เล่นวิดีโอ
-        marker.addEventListener('markerFound', () => {
-            video.play();
+        marker.addEventListener('markerFound', function() {
+            audio.play().then(() => {
+                audioBtn.innerHTML = '<span style="font-size: 18px;">🔊</span> เสียง';
+            }).catch((error) => {
+                console.log("กรุณากดเปิดเสียงด้วยตนเอง");
+            });
         });
 
-        // เมื่อมาร์กเกอร์หลุดกรอบกล้อง ให้หยุดเล่นวิดีโอ
-        marker.addEventListener('markerLost', () => {
-            video.pause();
+        marker.addEventListener('markerLost', function() {
+            audio.pause();
+            audioBtn.innerHTML = '<span style="font-size: 18px;">🔇</span> เสียง';
         });
+        // ===============================================
 
         function startAR() {
             document.getElementById('main-menu-ui').classList.add('hide');
             document.getElementById('close-ar-btn').style.display = 'block';
             document.getElementById('ar-controls').style.display = 'flex';
-            document.getElementById('ar-hint').style.display = 'block';
-
-            // ทริกเกอร์วิดีโอ 1 ครั้งตอนผู้ใช้กดปุ่ม เพื่อปลดล็อคข้อจำกัดเบราว์เซอร์มือถือ
-            video.play().then(() => {
-                video.pause();
-            }).catch(e => console.log("Video setup error:", e));
+            document.getElementById('ar-hint').style.display = 'block'; // 🌟 โชว์ข้อความแนะนำ
         }
 
         function stopAR() {
-            window.location.reload();
+            document.getElementById('main-menu-ui').classList.remove('hide');
+            document.getElementById('close-ar-btn').style.display = 'none';
+            document.getElementById('ar-controls').style.display = 'none';
+            document.getElementById('ar-hint').style.display = 'none'; // 🌟 ซ่อนข้อความแนะนำ
+            
+            audio.pause();
+            audio.currentTime = 0; 
+            audioBtn.innerHTML = '<span style="font-size: 18px;">🔇</span> เสียง';
+        }
+
+        function rotateModel(degrees) {
+            const model = document.getElementById('ganesha-entity');
+            const currentRot = model.getAttribute('rotation');
+            model.setAttribute('rotation', {
+                x: currentRot.x,
+                y: currentRot.y + degrees,
+                z: currentRot.z
+            });
         }
     </script>
 </body>
-
 </html>
